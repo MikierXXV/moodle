@@ -24,6 +24,9 @@ class grade_export_txt extends grade_export {
 
     public $separator; // default separator
 
+    /** @var stdClass data from the grade export form */
+    private $formdata;
+
     /**
      * Constructor should set up all the private variables ready to be pulled
      * @param object $course
@@ -33,7 +36,7 @@ class grade_export_txt extends grade_export {
     public function __construct($course, $groupid, $formdata) {
         parent::__construct($course, $groupid, $formdata);
         $this->separator = $formdata->separator;
-
+        $this->formdata = $formdata;
         // Overrides.
         $this->usercustomfields = true;
     }
@@ -57,8 +60,34 @@ class grade_export_txt extends grade_export {
         $csvexport = new csv_export_writer($this->separator);
         $csvexport->set_filename($downloadfilename);
 
-        // Print names of all the fields
+        // Obtain selected fields from user formdata.
+        $profilefieldsselected = [];
+        foreach ($this->formdata as $key => $data) {
+            if (str_contains($key, "userfieldsvisbile_")) {
+                $value = str_replace("userfieldsvisbile_", "", $key);
+                array_push($profilefieldsselected, $value);
+            }
+        }
+
+        // Edit fields only choosing the selected ones.
+        foreach ($profilefields as $key => $fields) {
+            if ($profilefieldsselected !== null && !in_array($fields->shortname, $profilefieldsselected)) {
+                unset($profilefields[$key]);
+            }
+        }
+
         $exporttitle = array();
+
+        // Check if are groups in course.
+        $groups = groups_get_all_groups($this->course->id);
+        $groupscourse = count($groups) >= 1;
+
+        // Added column Groups.
+        if ($groupscourse) {
+            $exporttitle[] = get_string('group');
+        }
+
+        // Print names of all the fields.
         foreach ($profilefields as $field) {
             $exporttitle[] = $field->fullname;
         }
@@ -68,12 +97,12 @@ class grade_export_txt extends grade_export {
         }
 
         // Add grades and feedback columns.
-        foreach ($this->columns as $grade_item) {
+        foreach ($this->columns as $gradeitem) {
             foreach ($this->displaytype as $gradedisplayname => $gradedisplayconst) {
-                $exporttitle[] = $this->format_column_name($grade_item, false, $gradedisplayname);
+                $exporttitle[] = $this->format_column_name($gradeitem, false, $gradedisplayname);
             }
             if ($this->export_feedback) {
-                $exporttitle[] = $this->format_column_name($grade_item, true);
+                $exporttitle[] = $this->format_column_name($gradeitem, true);
             }
         }
         // Last downloaded column header.
@@ -90,6 +119,25 @@ class grade_export_txt extends grade_export {
 
             $exportdata = array();
             $user = $userdata->user;
+
+            if ($groupscourse) {
+                $usergroups = groups_get_user_groups($this->course->id, $user->id);
+                $ugrs = $usergroups[0];
+                if (!empty($usergroups)) {
+                    $groupsname = "";
+                    $first = true;
+                    foreach ($ugrs as $gr) {
+                        $grname = groups_get_group($gr, "name");
+                        if ($first) {
+                            $groupsname = $grname->name;
+                            $first = false;
+                        } else {
+                            $groupsname .= ',' . $grname->name;
+                        }
+                    }
+                    $exportdata[] = $groupsname;
+                }
+            }
 
             foreach ($profilefields as $field) {
                 $fieldvalue = grade_helper::get_user_field_value($user, $field);

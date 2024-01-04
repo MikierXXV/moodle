@@ -27,7 +27,7 @@ Feature: Group searching functionality within the user report.
     And the "multilang" filter applies to "content and headings"
     And I am on the "Course 1" "grades > User report > View" page logged in as "teacher1"
 
-  Scenario: A teacher can see the 'group' search widget only when group mode is enabled in the course
+  Scenario: A teacher can see the 'group' search widget when exist groups in the course and "no groups" is active
     Given ".groupsearchwidget" "css_element" should exist
     And I am on "Course 1" course homepage
     And I navigate to "Settings" in current page administration
@@ -35,6 +35,21 @@ Feature: Group searching functionality within the user report.
       | id_groupmode | No groups |
     And I press "Save and display"
     When I navigate to "View > User report" in the course gradebook
+    Then ".groupsearchwidget" "css_element" should exist
+    And I wait until "All participants" "option_role" exists
+    And I wait until "Default group" "option_role" exists
+    And I wait until "Tutor group" "option_role" exists
+    And I wait until "Marker group" "option_role" exists
+
+  Scenario: A teacher can't see the 'group' search widget when there aren't groups in the course and "no groups" is active
+    Given the following "courses" exist:
+      | fullname | shortname | category | groupmode |
+      | Course 2 | C2        | 0        | 0         |
+    And the following "course enrolments" exist:
+      | user      | course | role           |
+      | teacher1  | C2     | editingteacher |
+    And I am on the "Course 2" "grades > User report > View" page logged in as "teacher1"
+    When I navigate to "View > Grader report" in the course gradebook
     Then ".groupsearchwidget" "css_element" should not exist
 
   Scenario: A teacher can search for and find a group to find a user in

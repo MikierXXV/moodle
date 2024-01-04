@@ -752,16 +752,9 @@ function groups_get_activity_groupmode($cm, $course=null) {
 function groups_print_course_menu($course, $urlroot, $return=false) {
     global $USER, $OUTPUT;
 
-    if (!$groupmode = $course->groupmode) {
-        if ($return) {
-            return '';
-        } else {
-            return;
-        }
-    }
-
     $context = context_course::instance($course->id);
     $aag = has_capability('moodle/site:accessallgroups', $context);
+    $groupmode = $course->groupmode;
 
     $usergroups = array();
     if ($groupmode == VISIBLEGROUPS or $aag) {
@@ -783,8 +776,10 @@ function groups_print_course_menu($course, $urlroot, $return=false) {
 
     if ($groupmode == VISIBLEGROUPS) {
         $grouplabel = get_string('groupsvisible');
-    } else {
+    } else if ($groupmode == SEPARATEGROUPS) {
         $grouplabel = get_string('groupsseparate');
+    } else {
+        $grouplabel = get_string('groups');
     }
 
     if ($aag and $course->defaultgroupingid) {
@@ -1022,11 +1017,14 @@ function groups_print_activity_menu($cm, $urlroot, $return=false, $hideallpartic
 function groups_get_course_group($course, $update=false, $allowedgroups=null) {
     global $USER, $SESSION;
 
-    if (!$groupmode = $course->groupmode) {
+    $groupsincourse = groups_get_all_groups($course->id);
+
+    if (empty($groupsincourse) && !$groupmode = $course->groupmode) {
         // NOGROUPS used
         return false;
     }
 
+    $groupmode = $course->groupmode;
     $context = context_course::instance($course->id);
     if (has_capability('moodle/site:accessallgroups', $context)) {
         $groupmode = 'aag';
@@ -1430,7 +1428,7 @@ function _group_verify_activegroup($courseid, $groupmode, $groupingid, array $al
         $SESSION->activegroup = array();
     }
     if (!array_key_exists($courseid, $SESSION->activegroup)) {
-        $SESSION->activegroup[$courseid] = array(SEPARATEGROUPS=>array(), VISIBLEGROUPS=>array(), 'aag'=>array());
+        $SESSION->activegroup[$courseid] = [NOGROUPS => [], SEPARATEGROUPS => [], VISIBLEGROUPS => [], 'aag' => []];
     }
 
     // make sure that the current group info is ok

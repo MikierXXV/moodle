@@ -75,8 +75,10 @@ class get_groups_for_selector extends external_api {
 
         $mappedgroups = [];
         $course = $DB->get_record('course', ['id' => $params['courseid']]);
+        $groupsincourse = groups_get_all_groups($course->id);
+
         // Initialise the grade tracking object.
-        if ($groupmode = $course->groupmode) {
+        if ($groupmode = $course->groupmode || !empty($groupsincourse)) {
             $aag = has_capability('moodle/site:accessallgroups', $context);
 
             $usergroups = [];
@@ -115,7 +117,6 @@ class get_groups_for_selector extends external_api {
                 ];
             }, $groupsmenu);
         }
-
         return [
             'groups' => $mappedgroups,
             'warnings' => $warnings,

@@ -63,8 +63,9 @@ if (($groupmode == SEPARATEGROUPS) &&
     echo $OUTPUT->footer();
     die;
 }
-
-groups_print_course_menu($course, 'index.php?id='.$id);
+if (!empty(groups_get_all_groups($id))) {
+    groups_print_course_menu($course, 'index.php?id=' . $id);
+}
 echo '<div class="clearer"></div>';
 
 $mform->display();

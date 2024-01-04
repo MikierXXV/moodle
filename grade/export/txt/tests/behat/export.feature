@@ -9,9 +9,9 @@ Feature: I need to export grades as text
       | fullname | shortname | category | groupmode |
       | Course 1 | C1 | 0 | 1 |
     And the following "users" exist:
-      | username | firstname | lastname | email |
-      | teacher1 | Teacher | 1 | teacher1@example.com |
-      | student1 | Student | 1 | student1@example.com |
+      | username | firstname | lastname | email | institution | department | idnumber |
+      | teacher1 | Teacher | 1 | teacher1@example.com | Moodle | Maths | 10           |
+      | student1 | Student | 1 | student1@example.com | Moodle | Maths | 11           |
     And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
@@ -33,6 +33,10 @@ Feature: I need to export grades as text
     And I set the field "Grade export decimal places" to "1"
     And I press "Download"
     Then I should see "Student,1"
+    And I should see "11"
+    And I should see "Moodle"
+    And I should see "Maths"
+    And I should see "student1@example.com"
     And I should see "80.0"
     And I should not see "Course total"
     And I should not see "80.00"
@@ -46,6 +50,10 @@ Feature: I need to export grades as text
     And I click on "Course total" "checkbox"
     And I press "Download"
     Then I should see "Student,1"
+    And I should see "11"
+    And I should see "Moodle"
+    And I should see "Maths"
+    And I should see "student1@example.com"
     And I should see "80.00"
 
   @javascript
@@ -56,6 +64,10 @@ Feature: I need to export grades as text
       | Letter       | 1                        |
     And I press "Download"
     Then I should see "Student,1"
+    And I should see "11"
+    And I should see "Moodle"
+    And I should see "Maths"
+    And I should see "student1@example.com"
     And I should see "80.00 %"
     And I should see "B-"
     And I should not see "40.00 %"
@@ -70,8 +82,13 @@ Feature: I need to export grades as text
       | Letter       | 1                        |
     And I press "Download"
     Then I should see "Student,1"
+    And I should see "11"
+    And I should see "Moodle"
+    And I should see "Maths"
+    And I should see "student1@example.com"
     And I should see "80.00"
     And I should see "80.00 %"
     And I should see "B-"
     And I should not see "40.00 %"
     And I should not see ",F,"
+

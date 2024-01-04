@@ -51,8 +51,10 @@ class core_grades_renderer extends plugin_renderer_base {
     public function group_selector(object $course, ?string $groupactionbaseurl = null): ?string {
         global $USER;
 
+        $groupsincourse = groups_get_all_groups($course->id);
+        $groupmode = $course->groupmode;
         // Make sure that group mode is enabled.
-        if (!$groupmode = $course->groupmode) {
+        if (empty($groupsincourse) && !$groupmode) {
             return null;
         }
 
@@ -61,8 +63,12 @@ class core_grades_renderer extends plugin_renderer_base {
             'currentvalue' => optional_param('groupsearchvalue', '', PARAM_NOTAGS),
         ]);
 
-        $label = $groupmode == VISIBLEGROUPS ? get_string('selectgroupsvisible') :
-            get_string('selectgroupsseparate');
+        $label = get_string('selectagroup');
+        if ($groupmode == VISIBLEGROUPS) {
+            $label = get_string('selectgroupsvisible');
+        } else if ($groupmode == SEPARATEGROUPS) {
+            $label = get_string('selectgroupsseparate');
+        }
 
         $data = [
             'name' => 'group',

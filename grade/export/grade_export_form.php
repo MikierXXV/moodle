@@ -16,10 +16,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 if (!defined('MOODLE_INTERNAL')) {
-    die('Direct access to this script is forbidden.');    ///  It must be included from a Moodle page
+    die('Direct access to this script is forbidden.');    // It must be included from a Moodle page.
 }
 
-require_once $CFG->libdir.'/formslib.php';
+require_once($CFG->libdir.'/formslib.php');
+require_once($CFG->dirroot.'/user/lib.php');
 
 class grade_export_form extends moodleform {
     function definition() {
@@ -202,6 +203,50 @@ class grade_export_form extends moodleform {
         }
 
         $this->add_sticky_action_buttons(false, $submitstring);
+
+        $isxmlform = str_contains($mform->_attributes['action'], 'xml');
+        if (!$isxmlform) {
+            $element = $this->_form->createElement('header', 'userfieldsheader', 'User Fields');
+            $this->_form->insertElementBefore($element, 'submitbutton');
+
+            // Obtain the user profield fields of the user from setting administration.
+            $userprofieldfields = array_filter(explode(',', $CFG->grade_export_userprofilefields));
+
+            // User base fields.
+            $userdeafultfields = user_get_default_fields();
+
+            $selecteduserprofieldfields = array_intersect($userprofieldfields, $userdeafultfields);
+
+            // User profield fields.
+            $userfieldsoptions = [];
+            foreach ($selecteduserprofieldfields as $field) {
+                $str = get_string($field);
+                $userfieldsoptions[$field] = $str;
+            }
+
+            // User custom fields.
+            $usercustomfields = [];
+            foreach (profile_get_custom_fields() as $fielddata) {
+                $usercustomfields[$fielddata->shortname] = $fielddata->name;
+            }
+
+            // User profield fields + User custom fields.
+            $userfieldsoptions += $usercustomfields;
+
+            $userfieldslabel = $this->_form->createElement('static', 'label_userfields', 'Selection of user fields');
+            $this->_form->insertElementBefore($userfieldslabel, 'submitbutton');
+
+            // User fields create form element.
+            foreach ($userfieldsoptions as $key => $checkboxfields) {
+                $elementname = 'userfieldsvisbile_'.$key;
+                $foo = 'elem_'.$elementname;
+                $$foo = $this->_form->createElement('checkbox', $elementname,  $checkboxfields);
+
+                $this->_form->setDefault($elementname, 1);
+                $this->_form->insertElementBefore($$foo, 'submitbutton');
+            }
+            $this->_form->closeHeaderBefore('userfieldsheader');
+        }
     }
 
     /**

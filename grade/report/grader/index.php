@@ -57,11 +57,12 @@ $PAGE->requires->js_call_amd('core_grades/gradebooksetup_forms', 'init');
 if (!$course = $DB->get_record('course', array('id' => $courseid))) {
     throw new \moodle_exception('invalidcourseid');
 }
-
+$groupsincourse = groups_get_all_groups($course->id);
 // Conditionally add the group JS if we have groups enabled.
-if ($course->groupmode) {
+if ($course->groupmode || !empty($groupsincourse)) {
     $PAGE->requires->js_call_amd('gradereport_grader/group', 'init');
 }
+
 
 require_login($course);
 $context = context_course::instance($course->id);

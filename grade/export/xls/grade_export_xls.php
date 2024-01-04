@@ -21,6 +21,9 @@ class grade_export_xls extends grade_export {
 
     public $plugin = 'xls';
 
+    /** @var stdClass data from the grade export form */
+    private $formdata;
+
     /**
      * Constructor should set up all the private variables ready to be pulled
      * @param object $course
@@ -29,7 +32,7 @@ class grade_export_xls extends grade_export {
      */
     public function __construct($course, $groupid, $formdata) {
         parent::__construct($course, $groupid, $formdata);
-
+        $this->formdata = $formdata;
         // Overrides.
         $this->usercustomfields = true;
     }
@@ -58,22 +61,58 @@ class grade_export_xls extends grade_export {
         // Adding the worksheet
         $myxls = $workbook->add_worksheet($strgrades);
 
-        // Print names of all the fields
-        $profilefields = grade_helper::get_user_profile_fields($this->course->id, $this->usercustomfields);
+        // Print names of all the fields.
+        $profilefieldsuser = grade_helper::get_user_profile_fields($this->course->id, $this->usercustomfields);
+
+        // Obtain selected fields from user formdata.
+        $profilefieldsselected = [];
+        foreach ($this->formdata as $key => $data) {
+            if (str_contains($key, "userfieldsvisbile_")) {
+                $value = str_replace("userfieldsvisbile_", "", $key);
+                array_push($profilefieldsselected, $value);
+            }
+        }
+
+        // Edit fields only choosing the selected ones.
+        foreach ($profilefieldsuser as $key => $fields) {
+            if ($profilefieldsselected !== null && !in_array($fields->shortname, $profilefieldsselected)) {
+                unset($profilefieldsuser[$key]);
+            }
+        }
+
+        $profilefields = [];
+
+        // Check if are groups in course.
+        $groups = groups_get_all_groups($this->course->id);
+        $groupscourse = count($groups) >= 1;
+
+        if ($groupscourse) {
+            $group = new stdClass();
+            $group->customid = 0;
+            $group->shortname = "groups";
+            $group->fullname = get_string('groups');
+
+            $profilefields[] = $group;
+        }
+
+        foreach ($profilefieldsuser as $fields) {
+            $profilefields[] = $fields;
+        }
         foreach ($profilefields as $id => $field) {
             $myxls->write_string(0, $id, $field->fullname);
         }
+
         $pos = count($profilefields);
         if (!$this->onlyactive) {
             $myxls->write_string(0, $pos++, get_string("suspended"));
         }
-        foreach ($this->columns as $grade_item) {
+        foreach ($this->columns as $gradeitem) {
             foreach ($this->displaytype as $gradedisplayname => $gradedisplayconst) {
-                $myxls->write_string(0, $pos++, $this->format_column_name($grade_item, false, $gradedisplayname));
+                $myxls->write_string(0, $pos++, $this->format_column_name($gradeitem, false, $gradedisplayname));
             }
             // Add a column_feedback column
             if ($this->export_feedback) {
-                $myxls->write_string(0, $pos++, $this->format_column_name($grade_item, true));
+                $myxls->write_string(0, $pos++, $this->format_column_name($gradeitem, true));
             }
         }
         // Last downloaded column header.
@@ -91,8 +130,27 @@ class grade_export_xls extends grade_export {
             $user = $userdata->user;
 
             foreach ($profilefields as $id => $field) {
-                $fieldvalue = grade_helper::get_user_field_value($user, $field);
-                $myxls->write_string($i, $id, $fieldvalue);
+                if ($field->shortname != "groups") {
+                    $fieldvalue = grade_helper::get_user_field_value($user, $field);
+                    $myxls->write_string($i, $id, $fieldvalue);
+                } else {
+                    $usergroups = groups_get_user_groups($this->course->id, $user->id);
+                    $ugrs = $usergroups[0];
+                    if (!empty($usergroups)) {
+                        $groupsname = "";
+                        $first = true;
+                        foreach ($ugrs as $gr) {
+                            $grname = groups_get_group($gr, "name");
+                            if ($first) {
+                                $groupsname = $grname->name;
+                                $first = false;
+                            } else {
+                                $groupsname .= ',' . $grname->name;
+                            }
+                        }
+                        $myxls->write_string($i, $id, $groupsname);
+                    }
+                }
             }
             $j = count($profilefields);
             if (!$this->onlyactive) {
@@ -122,7 +180,7 @@ class grade_export_xls extends grade_export {
         $gui->close();
         $geub->close();
 
-    /// Close the workbook
+        // Close the workbook.
         $workbook->close();
 
         exit;

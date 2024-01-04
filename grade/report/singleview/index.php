@@ -174,7 +174,8 @@ if ($itemtype == 'user' || $itemtype == 'user_select') {
     $actionbar = new \core_grades\output\general_action_bar($context, new moodle_url('/grade/report/singleview/index.php',
         ['id' => $courseid]), 'report', 'singleview');
 }
-if ($course->groupmode && $itemtype !== 'select') {
+$groupsincourse = groups_get_all_groups($course->id);
+if (($course->groupmode || !empty($groupsincourse)) && $itemtype !== 'select') {
     $PAGE->requires->js_call_amd('gradereport_singleview/group', 'init', [$itemtype]);
 }
 
